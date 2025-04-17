@@ -1,4 +1,4 @@
-from dotenv import load_dotenv
+
 load_dotenv()
 import base64
 import streamlit as st
@@ -9,7 +9,7 @@ import pdf2image
 import re
 from pdf2image import convert_from_bytes
 import google.generativeai as genai
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+genai.configure(api_key=st.secrets["google"]["GOOGLE_API_KEY"])
 def get_gemini_response(input,pdf_content,prompt):
     model=genai.GenerativeModel('gemini-1.5-flash')
     response=model.generate_content([input,pdf_content[0],prompt])
