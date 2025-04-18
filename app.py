@@ -1,6 +1,5 @@
 import base64
 import streamlit as st
-import os
 import io
 from PIL import Image
 import fitz  # PyMuPDF for PDF handling
@@ -12,12 +11,12 @@ api_key = st.secrets["google"]["GOOGLE_API_KEY"]
 genai.configure(api_key=api_key)
 
 # Function to get response from Gemini
-def get_gemini_response(input_text, pdf_content, prompt):
+def get_gemini_response(input_text, pdf_content_text, prompt):
     model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content([input_text, pdf_content[0], prompt])
+    response = model.generate_content([input_text, pdf_content_text, prompt])
     return response.text
 
-# Function to process PDF and convert to base64
+# Function to process PDF and extract text content
 def input_pdf_setup(uploaded_file):
     if uploaded_file is not None:
         try:
@@ -26,21 +25,15 @@ def input_pdf_setup(uploaded_file):
             
             # Check if PDF has any pages
             if doc.page_count > 0:
-                # Extract the first page
+                # Extract text from the first page
                 page = doc.load_page(0)
+                pdf_text = page.get_text("text")  # Extract text content from the page
                 
-                # Convert page to pixmap (image)
-                pix = page.get_pixmap(dpi=150)  # You can increase DPI for better quality
-                
-                # Convert the image to JPEG byte array
-                img_byte_arr = pix.tobytes("jpeg")
-                
-                # Encode the image to base64
-                pdf_parts = [{
-                    "mime_type": "image/jpeg",
-                    "data": base64.b64encode(img_byte_arr).decode()  # encode to base64
-                }]
-                return pdf_parts
+                # If text is found, return it, otherwise raise an error
+                if pdf_text:
+                    return pdf_text
+                else:
+                    raise ValueError("No text found in the PDF")
             else:
                 raise ValueError("No pages found in PDF")
         except Exception as e:
@@ -84,31 +77,29 @@ input_prompt1 = """You are an HR with tech expertise. Evaluate the resume based 
 input_prompt3 = """You are an ATS scanner. Evaluate the resume and provide match percentage, missing keywords, and final remarks."""
 
 if submit1 and uploaded_file:
-    # Process the uploaded resume PDF and extract image data using fitz
-    pdf_content = input_pdf_setup(uploaded_file)
+    # Process the uploaded resume PDF and extract text content using fitz
+    pdf_content_text = input_pdf_setup(uploaded_file)
     
     # Generate the response using Gemini
-    response = get_gemini_response(input_prompt1, pdf_content, input_text)
+    response = get_gemini_response(input_prompt1, pdf_content_text, input_text)
     st.subheader("Evaluation:")
     st.write(response)
 
 elif submit3 and uploaded_file:
-    # Process the uploaded resume PDF and extract image data using fitz
-    pdf_content = input_pdf_setup(uploaded_file)
+    # Process the uploaded resume PDF and extract text content using fitz
+    pdf_content_text = input_pdf_setup(uploaded_file)
     
     # Generate the response using Gemini
-    response = get_gemini_response(input_prompt3, pdf_content, input_text)
+    response = get_gemini_response(input_prompt3, pdf_content_text, input_text)
     st.subheader("Match Percentage:")
     st.write(response)
 
 elif submit2 and uploaded_file:
     # Process the uploaded resume and extract skills
     resume_content = input_pdf_setup(uploaded_file)
-    resume_text = resume_content[0]['data']
-    resume_text_decoded = base64.b64decode(resume_text).decode("utf-8", errors='ignore')
     
     # Extract skills from resume and job description
-    resume_skills = extract_skills(resume_text_decoded)
+    resume_skills = extract_skills(resume_content)
     job_skills = extract_skills(input_text)
     
     # Generate and display skill improvement advice
