@@ -1,9 +1,9 @@
 import streamlit as st
-import openai
+
 import fitz  # PyMuPDF for PDF handling
 import google.generativeai as genai
 from google.generativeai import gapic as generativeai
-
+import os
 from io import BytesIO
 from dotenv import load_dotenv
 
