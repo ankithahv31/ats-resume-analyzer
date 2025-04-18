@@ -14,18 +14,29 @@ genai.configure(api_key=api_key)
 
 # Function to extract text from PDF using PyMuPDF
 def extract_text_from_pdf(uploaded_file):
-    # Open the PDF using PyMuPDF
-    doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-    text = ""
-    for page_num in range(doc.page_count):
-        page = doc.load_page(page_num)
-        text += page.get_text()  # Extract text from each page
-    return text
+    try:
+        # Open the PDF using PyMuPDF
+        doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+        text = ""
+        for page_num in range(doc.page_count):
+            page = doc.load_page(page_num)
+            text += page.get_text()  # Extract text from each page
+        return text
+    except fitz.EmptyFileError:
+        st.error("The uploaded PDF file is empty. Please upload a valid PDF.")
+        return None
+    except Exception as e:
+        st.error(f"An error occurred while extracting text from the PDF: {e}")
+        return None
 
 # Function to handle the Gemini response
 def get_gemini_response(input_text, uploaded_file, prompt):
     # Extract text from the uploaded resume PDF
     resume_text = extract_text_from_pdf(uploaded_file)
+    
+    if resume_text is None:
+        return "Error: Resume extraction failed. Please try uploading a valid resume."
+
     st.write(f"Job Description: {input_text[:200]}...")  # Show part of the job description
     st.write(f"Resume Text: {resume_text[:200]}...")  # Show part of the resume text
 
