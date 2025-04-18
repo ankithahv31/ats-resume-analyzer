@@ -1,9 +1,6 @@
 import streamlit as st
-
 import fitz  # PyMuPDF for PDF handling
 import google.generativeai as genai
-import google.generativeai as generativeai
-
 import os
 from io import BytesIO
 from dotenv import load_dotenv
@@ -29,8 +26,8 @@ def extract_text_from_pdf(uploaded_file):
 def get_gemini_response(input_text, uploaded_file, prompt):
     # Extract text from the uploaded resume PDF
     resume_text = extract_text_from_pdf(uploaded_file)
-    print(f"Input Text: {input_text}")
-    print(f"Resume Text: {resume_text[:500]}...")  # Print first 500 characters of the resume text for debugging
+    st.write(f"Job Description: {input_text[:200]}...")  # Show part of the job description
+    st.write(f"Resume Text: {resume_text[:200]}...")  # Show part of the resume text
 
     # Generate response from Gemini
     model = genai.GenerativeModel('gemini-1.5-flash')
@@ -40,22 +37,36 @@ def get_gemini_response(input_text, uploaded_file, prompt):
 # Streamlit interface
 st.title("ATS Resume Analyzer")
 
-# File uploader
+# File uploader for resume PDF
 uploaded_file = st.file_uploader("Upload your resume (PDF)", type="pdf")
 
 # Input field for job description
 input_text = st.text_area("Enter Job Description")
 
-# If both job description and resume are provided
-if uploaded_file and input_text:
-    prompt = f"Analyze the following resume and job description for relevance and skills match. Provide a match percentage and highlight skill gaps.\n\nJob Description: {input_text}\n\nResume: {extract_text_from_pdf(uploaded_file)}"
-    
-    # Get response from Gemini model
-    response_text = get_gemini_response(input_text, uploaded_file, prompt)
-    
-    # Display response
-    st.subheader("Match Results")
-    st.write(response_text)
+# Buttons for actions
+button_analyze = st.button("Analyze Resume")
+button_reset = st.button("Reset Fields")
+button_exit = st.button("Exit")
 
-else:
-    st.write("Please upload a resume and enter the job description to get started.")
+# If the user clicks the 'Analyze Resume' button
+if button_analyze:
+    if uploaded_file and input_text:
+        prompt = f"Analyze the following resume and job description for relevance and skills match. Provide a match percentage and highlight skill gaps.\n\nJob Description: {input_text}\n\nResume: {extract_text_from_pdf(uploaded_file)}"
+        
+        with st.spinner("Analyzing... Please wait."):
+            # Get response from Gemini model
+            response_text = get_gemini_response(input_text, uploaded_file, prompt)
+        
+        # Display response
+        st.subheader("Match Results")
+        st.write(response_text)
+    else:
+        st.error("Please upload a resume and enter the job description to get started.")
+
+# Reset button functionality
+if button_reset:
+    st.experimental_rerun()  # To reset the app and clear inputs
+
+# Exit button functionality
+if button_exit:
+    st.stop()  # Stops the app execution
